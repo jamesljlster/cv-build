@@ -1,27 +1,23 @@
+import yaml
+import argparse
+
 import os
+from os.path import \
+    exists, isdir, dirname, join, basename, abspath, splitext
+
 import sys
 import docker
 
-# Repo git url
-git_url = 'https://github.com/opencv/opencv.git'
+from glob import glob
 
 # Package information
 pkg_name = 'libopencv4-dev'
-pkg_ver = '4.5.0'
+pkg_url = 'https://github.com/opencv/opencv.git'
 pkg_arch = 'amd64'
 pkg_maintainer = 'James Lai <jamesljlster@gmail.com>'
 pkg_section = 'universe/libdevel'
 pkg_homepage = 'https://opencv.org'
 pkg_description = 'development files for opencv'
-
-# Dependency
-build_deps = ['git', 'make']
-pkg_deps = [
-    'g++', 'cmake', 'pkg-config', 'qt5-default', 'libdc1394-22-dev',
-    'libavcodec-dev', 'libavformat-dev', 'libavutil-dev', 'libswscale-dev',
-    'libavresample-dev', 'python3', 'python3-dev', 'python3-numpy',
-    'liblapack-dev', 'libeigen3-dev', 'libatlas-base-dev', 'liblapacke-dev'
-]
 
 # Build arguments
 cmake_args = {
@@ -30,14 +26,13 @@ cmake_args = {
     'WITH_OPENGL': 'ON',
     'BUILD_opencv_python3': 'ON',
     'CMAKE_BUILD_TYPE': 'Release',
-    'OPENCV_GENERATE_PKGCONFIG': 'ON',
-    'OPENCV_DOWNLOAD_PATH': '/tmp/opencv-cache'
+    'OPENCV_GENERATE_PKGCONFIG': 'ON'
 }
 
 
 def check_makedirs(path):
-    if os.path.exists(path):
-        if not os.path.isdir(path):
+    if exists(path):
+        if not isdir(path):
             raise FileExistsError(
                 '\'%s\' exists and it is not a directory' % path)
     else:
@@ -54,15 +49,42 @@ def write_script(path, content):
 if __name__ == '__main__':
 
     # Resolve working directory
-    workDir = os.path.dirname(__file__)
+    workDir = dirname(__file__)
+
+    # Resolve available platforms
+    platCfgs = glob(join(workDir, 'platform/*.yaml'))
+    platList = [splitext(basename(cfg))[0] for cfg in platCfgs]
+
+    # Parse arguments
+    argp = argparse.ArgumentParser(
+        description='Make OpenCV deb package for Ubuntu')
+    argp.add_argument('platform', metavar='platform', type=str, choices=platList,
+                      help=('Ubuntu release code name. Available: %s.' %
+                            ', '.join(platList)))
+    argp.add_argument('version', type=str, help='Target OpenCV version.')
+
+    args = argp.parse_args()
+
+    # Get target OpenCV version
+    pkg_ver = args.version
+
+    # Load platform config
+    platCfg = yaml.load(
+        open(join(workDir, 'platform/%s.yaml' % args.platform), 'r'),
+        Loader=yaml.FullLoader
+    )
+
+    ct_tag = platCfg['tag']
+    build_deps = platCfg['build_deps']
+    pkg_deps = platCfg['pkg_deps']
 
     # Make packaging directory
-    pkgDir = os.path.join(workDir, pkg_name)
+    pkgDir = join(workDir, pkg_name)
     check_makedirs(pkgDir)
 
     # Write control file
-    check_makedirs(os.path.join(pkgDir, 'DEBIAN'))
-    with open(os.path.join(pkgDir, 'DEBIAN/control'), 'w') as f:
+    check_makedirs(join(pkgDir, 'DEBIAN'))
+    with open(join(pkgDir, 'DEBIAN/control'), 'w') as f:
         f.writelines([
             'Package: %s\n' % pkg_name,
             'Version: %s\n' % pkg_ver,
@@ -76,9 +98,9 @@ if __name__ == '__main__':
 
     # Write scripts for building package
     write_script(
-        os.path.join(workDir, 'build_package.sh'), [
+        join(workDir, 'build_package.sh'), [
             'apt install -y ' + ' '.join(build_deps + pkg_deps),
-            'git clone --branch %s --depth 1 %s' % (pkg_ver, git_url),
+            'git clone --branch %s --depth 1 %s' % (pkg_ver, pkg_url),
             'mkdir build && cd build',
             'cmake %s ../opencv' % (
                 ' '.join(['-D%s=%s' % (key, cmake_args[key]) for key in cmake_args])),
@@ -87,7 +109,7 @@ if __name__ == '__main__':
     )
 
     write_script(
-        os.path.join(workDir, 'make_deb.sh'), [
+        join(workDir, 'make_deb.sh'), [
             'tar -xzvf ./build/OpenCV-%s-x86_64.tar.gz -C ./libopencv4-dev' % pkg_ver,
             'mv ./libopencv4-dev/OpenCV-%s-x86_64 ./libopencv4-dev/usr' % pkg_ver,
             ('echo \"Installed-Size: $(du -sh ./libopencv4-dev/usr | cut -f1)\"' +
@@ -97,21 +119,21 @@ if __name__ == '__main__':
     )
 
     # Create build container
-    ctWorkDir = os.path.join('/root', os.path.basename(workDir))
+    ctWorkDir = join('/root', basename(workDir))
     client = docker.from_env()
     cvBuild = client.containers.run(
-        image='ubuntu:18.04',
+        image='ubuntu:%s' % ct_tag,
         name='cv-build',
         hostname='cv-build',
         working_dir='/root',
         volumes={
-            os.path.abspath(workDir): {
+            abspath(workDir): {
                 'bind': ctWorkDir,
                 'mode': 'rw'
             }
         },
         environment=['DEBIAN_FRONTEND=noninteractive'],
-        entrypoint=os.path.join(ctWorkDir, 'make_package.sh'),
+        entrypoint=join(ctWorkDir, 'make_package.sh'),
         detach=True
     )
 
