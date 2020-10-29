@@ -11,7 +11,7 @@ import docker
 from glob import glob
 
 # Package information
-pkg_name = 'libopencv4-dev'
+pkg_namef = 'libopencv%s-%s-dev'
 pkg_url = 'https://github.com/opencv/opencv.git'
 pkg_arch = 'amd64'
 pkg_maintainer = 'James Lai <jamesljlster@gmail.com>'
@@ -65,8 +65,9 @@ if __name__ == '__main__':
 
     args = argp.parse_args()
 
-    # Get target OpenCV version
+    # Configure package name
     pkg_ver = args.version
+    pkg_name = pkg_namef % (pkg_ver.split('.')[0], pkg_ver)
 
     # Load platform config
     platCfg = yaml.load(
@@ -97,24 +98,34 @@ if __name__ == '__main__':
         ])
 
     # Write scripts for building package
+    src_dir = pkg_name + '-src'
+    build_dir = pkg_name + '-build'
     write_script(
         join(workDir, 'build_package.sh'), [
-            'apt install -y ' + ' '.join(build_deps + pkg_deps),
-            'git clone --branch %s --depth 1 %s' % (pkg_ver, pkg_url),
-            'mkdir build && cd build',
-            'cmake %s ../opencv' % (
-                ' '.join(['-D%s=%s' % (key, cmake_args[key]) for key in cmake_args])),
+            ('apt install -y --no-install-recommends ' +
+             ' '.join(build_deps + pkg_deps)),
+            ('git clone --branch %s --depth 1 %s ./%s' %
+             (pkg_ver, pkg_url, src_dir)),
+            'mkdir ./%s' % build_dir,
+            'cd ./%s' % build_dir,
+            'cmake %s ../%s' % (
+                ' '.join(['-D%s=%s' % (key, cmake_args[key])
+                          for key in cmake_args]),
+                src_dir
+            ),
             'make -j %d package' % os.cpu_count()
         ]
     )
 
     write_script(
         join(workDir, 'make_deb.sh'), [
-            'tar -xzvf ./build/OpenCV-%s-x86_64.tar.gz -C ./libopencv4-dev' % pkg_ver,
-            'mv ./libopencv4-dev/OpenCV-%s-x86_64 ./libopencv4-dev/usr' % pkg_ver,
-            ('echo \"Installed-Size: $(du -sh ./libopencv4-dev/usr | cut -f1)\"' +
-             ' | tee --append ./libopencv4-dev/DEBIAN/control'),
-            'dpkg -b ./libopencv4-dev'
+            ('tar -xzvf ./%s/OpenCV-%s-x86_64.tar.gz -C ./%s' %
+                (build_dir, pkg_ver, pkg_name)),
+            ('mv ./%s/OpenCV-%s-x86_64 ./%s/usr' %
+                (pkg_name, pkg_ver, pkg_name)),
+            ('echo \"Installed-Size: $(du -sh ./%s/usr | cut -f1)\"' % pkg_name +
+             ' | tee --append ./%s/DEBIAN/control' % pkg_name),
+            'dpkg -b ./%s' % pkg_name
         ]
     )
 

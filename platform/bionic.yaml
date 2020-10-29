@@ -4,5 +4,6 @@ pkg_deps: [
     'g++', 'cmake', 'pkg-config', 'qt5-default', 'libdc1394-22-dev',
     'libavcodec-dev', 'libavformat-dev', 'libavutil-dev', 'libswscale-dev',
     'libavresample-dev', 'python3', 'python3-dev', 'python3-numpy',
-    'liblapack-dev', 'libeigen3-dev', 'libatlas-base-dev', 'liblapacke-dev'
+    'liblapack-dev', 'libeigen3-dev', 'libatlas-base-dev', 'liblapacke-dev',
+    'libqt5opengl5-dev'
 ]

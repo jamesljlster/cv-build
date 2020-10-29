@@ -1,6 +1,5 @@
-opencv
-build
 *.deb
-libopencv4-dev
+libopencv*
 build_package.sh
 make_deb.sh
+.bash_history
