@@ -13,11 +13,18 @@ Build OpenCV 4 deb package for ubuntu with docker no matter what environment are
 Build OpenCV 4 deb package
 
 ```bash
-python make_opencv_bionic_deb.py
+python make_opencv_deb.py ubuntu_code_name opencv_version
 ```
 
-Copy package and install on ubuntu
+For example:
 
 ```bash
-sudo apt install --fix-broken ./libopencv4-dev.deb
+python make_opencv_deb.py bionic 4.5.0
+```
+
+Copy package and install on ubuntu.  
+For example:
+
+```bash
+sudo apt install --fix-broken ./libopencv4-4.5.0-dev.deb
 ```
