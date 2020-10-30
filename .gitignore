@@ -3,3 +3,4 @@ libopencv*
 build_package.sh
 make_deb.sh
 .bash_history
+.python_history
