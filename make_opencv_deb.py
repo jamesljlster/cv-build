@@ -97,8 +97,8 @@ if __name__ == '__main__':
             'Section: %s\n' % pkg_section,
             'Homepage: %s\n' % pkg_homepage,
             'Description: %s\n' % pkg_description,
-            'Conflicts: %s' % ', '.join(pkg_conflicts),
-            'Provides: %s' % ', '.join(pkg_provides)
+            'Conflicts: %s\n' % ', '.join(pkg_conflicts),
+            'Provides: %s\n' % ', '.join(pkg_provides)
         ])
 
     # Write scripts for building package
