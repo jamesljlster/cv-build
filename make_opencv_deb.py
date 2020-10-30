@@ -64,6 +64,8 @@ if __name__ == '__main__':
                       help=('Ubuntu release code name. Available: %s.' %
                             ', '.join(platList)))
     argp.add_argument('version', type=str, help='Target OpenCV version.')
+    argp.add_argument('--max-jobs', type=int, default=os.cpu_count(),
+                      help='Maximum building threads. (default: %(default)s)')
 
     args = argp.parse_args()
 
@@ -117,7 +119,7 @@ if __name__ == '__main__':
                           for key in cmake_args]),
                 src_dir
             ),
-            'make -j %d package' % os.cpu_count()
+            'make -j %d package' % args.max_jobs
         ]
     )
 
