@@ -28,3 +28,14 @@ For example:
 ```bash
 sudo apt install --fix-broken ./libopencv4-4.5.0-dev.deb
 ```
+
+### TODO
+
+-   Script error handling
+-   Ctrl-C handling
+    -   Stop and remove container
+
+### Planing
+
+-   APT Repository
+-   Package name generator (required by APT repository)

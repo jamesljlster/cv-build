@@ -18,6 +18,8 @@ pkg_maintainer = 'James Lai <jamesljlster@gmail.com>'
 pkg_section = 'universe/libdevel'
 pkg_homepage = 'https://opencv.org'
 pkg_description = 'development files for opencv'
+pkg_conflicts = ['libopencv-dev']
+pkg_provides = ['libopencv-dev']
 
 # Build arguments
 cmake_args = {
@@ -95,6 +97,8 @@ if __name__ == '__main__':
             'Section: %s\n' % pkg_section,
             'Homepage: %s\n' % pkg_homepage,
             'Description: %s\n' % pkg_description,
+            'Conflicts: %s' % ', '.join(pkg_conflicts),
+            'Provides: %s' % ', '.join(pkg_provides)
         ])
 
     # Write scripts for building package
